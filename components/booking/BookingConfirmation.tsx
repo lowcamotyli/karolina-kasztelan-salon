@@ -46,7 +46,7 @@ const BookingConfirmation: React.FC<Props> = ({
                 {/* Date & Time */}
                 <div className="p-6 border-b border-gray-50">
                     <h4 className="text-xs uppercase tracking-widest text-gray-400 mb-3 font-bold">Termin</h4>
-                    <div className="flex items-center gap-6">
+                    <div className="flex flex-col">
                         <div className="flex justify-between py-3 border-b border-gray-100">
                             <span className="text-gray-400 font-light">Usługa</span>
                             <span className="text-black font-medium">{service.name}</span>

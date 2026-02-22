@@ -33,7 +33,7 @@ const ClientForm: React.FC<Props> = ({ onSubmit }) => {
             ...data,
             email: data.email === '' ? undefined : data.email,
         };
-        onSubmit(result);
+        onSubmit(result as { name: string; phone: string; email?: string });
     };
 
     return (

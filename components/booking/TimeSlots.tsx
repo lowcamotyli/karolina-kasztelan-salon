@@ -32,7 +32,7 @@ const TimeSlots: React.FC<Props> = ({ date, serviceId, employeeId, onSelectTime 
         };
 
         loadSlots();
-    }, [date, serviceId]);
+    }, [date, serviceId, employeeId]);
 
     if (isLoading) {
         return (
