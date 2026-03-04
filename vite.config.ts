@@ -7,6 +7,13 @@ export default defineConfig({
   server: {
     port: 3000,
     host: '0.0.0.0',
+    proxy: {
+      '/api/simpli': {
+        target: 'https://simplisaloncloud.vercel.app',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/simpli/, ''),
+      },
+    },
   },
   plugins: [react()],
   resolve: {
