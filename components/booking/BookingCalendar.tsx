@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { fetchAvailableDates, fetchAvailability } from '../../lib/api';
+import { fetchAvailableDates } from '../../lib/api';
 
 interface Props {
     serviceId: string;
@@ -30,24 +30,7 @@ const BookingCalendar: React.FC<Props> = ({ serviceId, employeeId, onSelectDate 
             try {
                 setIsLoadingDates(true);
                 const dates = await fetchAvailableDates(format(firstDate), format(lastDate), serviceId, employeeId);
-
-                // Verify each date actually has slots — the bulk endpoint sometimes ignores
-                // employee working days and exceptions, returning false positives
-                if (dates.length > 0) {
-                    const verified = await Promise.all(
-                        dates.map(async (date) => {
-                            try {
-                                const slots = await fetchAvailability(date, serviceId, employeeId);
-                                return slots.length > 0 ? date : null;
-                            } catch {
-                                return date; // keep on error to avoid blocking the user
-                            }
-                        })
-                    );
-                    setAvailableDates(verified.filter((d): d is string => d !== null));
-                } else {
-                    setAvailableDates([]);
-                }
+                setAvailableDates(dates);
             } catch (err) {
                 console.error("Failed to fetch available dates", err);
                 setAvailableDates([]);
