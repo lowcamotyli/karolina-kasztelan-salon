@@ -55,6 +55,27 @@ const Booking: React.FC = () => {
     setSubmitError(null);
   };
 
+  const resetFromEmployee = () => {
+    setSelectedEmployee(null);
+    setSelectedDate(null);
+    setSelectedTime(null);
+    setClientData(null);
+    setSubmitError(null);
+  };
+
+  const resetFromDate = () => {
+    setSelectedDate(null);
+    setSelectedTime(null);
+    setClientData(null);
+    setSubmitError(null);
+  };
+
+  const resetFromTime = () => {
+    setSelectedTime(null);
+    setClientData(null);
+    setSubmitError(null);
+  };
+
   const handleSubmit = async () => {
     if (!selectedService || !selectedEmployee || !selectedDate || !selectedTime || !clientData) return;
 
@@ -67,7 +88,7 @@ const Booking: React.FC = () => {
       await createBooking({
         name: clientData.name,
         phone: normalizedPhone,
-        email: clientData.email || '',
+        ...(clientData.email ? { email: clientData.email } : {}),
         serviceId: selectedService.id,
         employeeId: selectedEmployee.id,
         date: selectedDate,
@@ -256,6 +277,7 @@ const Booking: React.FC = () => {
                     <ServiceSelector
                       onSelect={(s) => {
                         setSelectedService(s);
+                        resetFromEmployee();
                         setStep(2);
                       }}
                     />
@@ -263,14 +285,18 @@ const Booking: React.FC = () => {
                   {step === 2 && (
                     <EmployeeSelector
                       onSelect={(e) => {
+                        resetFromDate();
                         setSelectedEmployee(e);
                         setStep(3);
                       }}
                     />
                   )}
-                  {step === 3 && (
+                  {step === 3 && selectedService && selectedEmployee && (
                     <BookingCalendar
+                      serviceId={selectedService.id}
+                      employeeId={selectedEmployee.id}
                       onSelectDate={(d) => {
+                        resetFromTime();
                         setSelectedDate(d);
                         setStep(4);
                       }}

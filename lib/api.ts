@@ -26,7 +26,16 @@ async function fetchWithAuth<T>(endpoint: string, options: RequestInit = {}): Pr
 
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `API Error: ${response.status} ${response.statusText}`);
+        const validationMessage = Array.isArray(errorData.error)
+            ? errorData.error
+                .map((issue: { path?: string[]; message?: string }) => {
+                    const field = issue.path?.join('.');
+                    return field ? `${field}: ${issue.message}` : issue.message;
+                })
+                .filter(Boolean)
+                .join(', ')
+            : null;
+        throw new Error(validationMessage || errorData.message || `API Error: ${response.status} ${response.statusText}`);
     }
 
     return response.json();
@@ -49,6 +58,15 @@ export async function fetchAvailability(date: string, serviceId: string, employe
     }
     const data = await fetchWithAuth<AvailabilityResponse>(url);
     return data.slots;
+}
+
+export async function fetchAvailableDates(startDate: string, endDate: string, serviceId: string, employeeId?: string): Promise<string[]> {
+    let url = `/api/public/availability/dates?startDate=${startDate}&endDate=${endDate}&serviceId=${serviceId}`;
+    if (employeeId) {
+        url += `&employeeId=${employeeId}`;
+    }
+    const data = await fetchWithAuth<{ availableDates: string[] }>(url);
+    return data.availableDates;
 }
 
 export async function createBooking(data: BookingRequest): Promise<BookingResponse> {

@@ -16,6 +16,10 @@ const TimeSlots: React.FC<Props> = ({ date, serviceId, employeeId, onSelectTime 
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
 
     useEffect(() => {
+        setSelectedSlot(null);
+        setSlots([]);
+        setError(null);
+
         const loadSlots = async () => {
             if (!date || !serviceId || !employeeId) return;
 

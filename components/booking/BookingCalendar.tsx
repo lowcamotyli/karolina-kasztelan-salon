@@ -1,13 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { fetchAvailableDates } from '../../lib/api';
 
 interface Props {
+    serviceId: string;
+    employeeId?: string;
     onSelectDate: (date: string) => void;
 }
 
-const BookingCalendar: React.FC<Props> = ({ onSelectDate }) => {
+const BookingCalendar: React.FC<Props> = ({ serviceId, employeeId, onSelectDate }) => {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
+    const [availableDates, setAvailableDates] = useState<string[]>([]);
+    const [isLoadingDates, setIsLoadingDates] = useState(false);
+
+    useEffect(() => {
+        const loadDates = async () => {
+            const year = currentMonth.getFullYear();
+            const month = currentMonth.getMonth();
+            const firstDate = new Date(year, month, 1);
+            const lastDate = new Date(year, month + 1, 0);
+
+            const format = (d: Date) => {
+                const m = (d.getMonth() + 1).toString().padStart(2, '0');
+                const dd = d.getDate().toString().padStart(2, '0');
+                return `${d.getFullYear()}-${m}-${dd}`;
+            };
+
+            try {
+                setIsLoadingDates(true);
+                const dates = await fetchAvailableDates(format(firstDate), format(lastDate), serviceId, employeeId);
+                setAvailableDates(dates);
+            } catch (err) {
+                console.error("Failed to fetch available dates", err);
+                setAvailableDates([]);
+            } finally {
+                setIsLoadingDates(false);
+            }
+        };
+
+        if (serviceId) {
+            loadDates();
+        }
+    }, [currentMonth, serviceId, employeeId]);
 
     const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
     const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
@@ -59,8 +94,8 @@ const BookingCalendar: React.FC<Props> = ({ onSelectDate }) => {
     const dayLabels = ['Pn', 'Wt', 'Śr', 'Czw', 'Pt', 'So', 'Nd'];
 
     const handleDateClick = (day: number) => {
-        if (isPast(year, month, day) || isTooFar(year, month, day)) return;
         const dateStr = formatDate(year, month, day);
+        if (isPast(year, month, day) || isTooFar(year, month, day) || !availableDates.includes(dateStr)) return;
         setSelectedDate(dateStr);
         onSelectDate(dateStr);
     };
@@ -107,7 +142,12 @@ const BookingCalendar: React.FC<Props> = ({ onSelectDate }) => {
                 </div>
 
                 {/* Calendar Grid */}
-                <div className="grid grid-cols-7 gap-1">
+                <div className="grid grid-cols-7 gap-1 relative">
+                    {isLoadingDates && (
+                        <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-lg">
+                            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                    )}
                     {Array.from({ length: firstDay }).map((_, i) => (
                         <div key={`empty-${i}`} className="h-10 md:h-12" />
                     ))}
@@ -116,7 +156,8 @@ const BookingCalendar: React.FC<Props> = ({ onSelectDate }) => {
                         const dateStr = formatDate(year, month, day);
                         const past = isPast(year, month, day);
                         const far = isTooFar(year, month, day);
-                        const disabled = past || far;
+                        const isAvailable = availableDates.includes(dateStr);
+                        const disabled = past || far || !isAvailable;
                         const isSelected = selectedDate === dateStr;
 
                         return (
