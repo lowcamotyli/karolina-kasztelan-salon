@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/simpli/:path*",
-      "destination": "https://simplisaloncloud.vercel.app/:path*"
+      "destination": "https://simplisaloncloud-git-feature-797c05-lowcamotyli-1366s-projects.vercel.app/:path*"
     }
   ]
 }
