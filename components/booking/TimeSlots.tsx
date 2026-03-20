@@ -6,11 +6,13 @@ interface Props {
     date: string;
     serviceId: string;
     employeeId: string;
+    serviceDuration: number;
+    bookedByCart?: Array<{ time: string; duration: number }>;
     onSelectTime: (time: string) => void;
     onBack?: () => void;
 }
 
-const TimeSlots: React.FC<Props> = ({ date, serviceId, employeeId, onSelectTime, onBack }) => {
+const TimeSlots: React.FC<Props> = ({ date, serviceId, employeeId, serviceDuration, bookedByCart, onSelectTime, onBack }) => {
     const [slots, setSlots] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -27,7 +29,19 @@ const TimeSlots: React.FC<Props> = ({ date, serviceId, employeeId, onSelectTime,
             try {
                 setIsLoading(true);
                 const availableSlots = await fetchAvailability(date, serviceId, employeeId);
-                setSlots(availableSlots);
+                const filtered = availableSlots.filter(slot => {
+                    if (!bookedByCart || bookedByCart.length === 0) return true;
+                    const [h, m] = slot.split(':').map(Number);
+                    const slotStart = h * 60 + m;
+                    const slotEnd = slotStart + serviceDuration;
+                    return !bookedByCart.some(booked => {
+                        const [bh, bm] = booked.time.split(':').map(Number);
+                        const bookedStart = bh * 60 + bm;
+                        const bookedEnd = bookedStart + booked.duration;
+                        return slotStart < bookedEnd && slotEnd > bookedStart;
+                    });
+                });
+                setSlots(filtered);
                 setError(null);
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Wystąpił błąd podczas pobierania terminów');

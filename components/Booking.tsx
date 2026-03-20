@@ -385,6 +385,10 @@ const Booking: React.FC = () => {
                           date={activeItem.date}
                           serviceId={activeItem.serviceId}
                           employeeId={activeItem.employeeId}
+                          serviceDuration={activeItem.service?.duration ?? 0}
+                          bookedByCart={cartItems
+                            .filter((item, i) => i !== activeItemIndex && isCartItemComplete(item) && item.employeeId === activeItem.employeeId && item.date === activeItem.date && item.time && item.service)
+                            .map(item => ({ time: item.time!, duration: item.service!.duration }))}
                           onSelectTime={(t) => {
                             updateActiveItem({ time: t });
                           }}
