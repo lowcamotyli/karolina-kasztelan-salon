@@ -3,6 +3,8 @@ import {
     SimpliEmployee,
     AvailabilityResponse,
     BookingRequest,
+    GroupBookingRequest,
+    GroupBookingResponse,
     BookingResponse,
 } from './types';
 
@@ -71,6 +73,13 @@ export async function fetchAvailableDates(startDate: string, endDate: string, se
 
 export async function createBooking(data: BookingRequest): Promise<BookingResponse> {
     return fetchWithAuth<BookingResponse>('/api/public/bookings', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+export async function createGroupBooking(data: GroupBookingRequest): Promise<GroupBookingResponse> {
+    return fetchWithAuth<GroupBookingResponse>('/api/public/bookings/group', {
         method: 'POST',
         body: JSON.stringify(data),
     });

@@ -38,3 +38,32 @@ export interface BookingResponse {
         booking_time: string;
     };
 }
+
+export interface GroupBookingItem {
+    serviceId: string
+    employeeId: string
+    date: string
+    time: string
+}
+
+export interface GroupBookingRequest {
+    name: string
+    phone: string
+    email?: string
+    items: GroupBookingItem[]
+}
+
+export interface GroupBookingResponse {
+    visitGroup: {
+        id: string
+        status: string
+        total_price: number
+        total_duration: number
+    }
+    bookings: Array<{
+        id: string
+        status: string
+        booking_date: string
+        booking_time: string
+    }>
+}

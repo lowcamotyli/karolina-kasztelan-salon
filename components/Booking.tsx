@@ -7,22 +7,41 @@ import TimeSlots from './booking/TimeSlots';
 import ClientForm from './booking/ClientForm';
 import BookingConfirmation from './booking/BookingConfirmation';
 import EmployeeSelector from './booking/EmployeeSelector';
-import { createBooking } from '../lib/api';
+import { createBooking, createGroupBooking } from '../lib/api';
 import { SimpliEmployee } from '../lib/types';
+import CartItemDisplay from './booking/CartItem';
 
 type BookingMode = 'CALL' | 'ONLINE' | null;
+
+interface CartItemState {
+  serviceId: string | null;
+  service: { id: string; name: string; duration: number; price: number } | null;
+  employeeId: string | null;
+  employee: { id: string; first_name: string; last_name: string } | null;
+  date: string | null;
+  time: string | null;
+  activeSubStep: 'service' | 'employee' | 'date' | 'time';
+}
+
+const emptyCartItem: CartItemState = {
+  serviceId: null,
+  service: null,
+  employeeId: null,
+  employee: null,
+  date: null,
+  time: null,
+  activeSubStep: 'service',
+};
 
 const Booking: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [bookingMode, setBookingMode] = useState<BookingMode>(null);
   const [step, setStep] = useState(1);
 
-  // Data State
-  const [selectedService, setSelectedService] = useState<{ id: string; name: string; duration: number; price: number } | null>(null);
-  const [selectedEmployee, setSelectedEmployee] = useState<SimpliEmployee | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [clientData, setClientData] = useState<{ name: string; phone: string; email?: string } | null>(null);
+  const [cartItems, setCartItems] = useState<CartItemState[]>([emptyCartItem]);
+  const [cartClientData, setCartClientData] = useState<{ name: string; phone: string; email?: string } | null>(null);
+  const [cartStep, setCartStep] = useState<'client' | 'cart'>('client');
 
   // Status State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,70 +64,90 @@ const Booking: React.FC = () => {
 
   const resetFlow = () => {
     setStep(1);
-    setSelectedService(null);
-    setSelectedEmployee(null);
-    setSelectedDate(null);
-    setSelectedTime(null);
     setClientData(null);
+    setCartItems([emptyCartItem]);
+    setCartClientData(null);
+    setCartStep('client');
     setBookingMode(null);
     setSubmitSuccess(false);
     setSubmitError(null);
   };
 
-  const resetFromEmployee = () => {
-    setSelectedEmployee(null);
-    setSelectedDate(null);
-    setSelectedTime(null);
-    setClientData(null);
-    setSubmitError(null);
+  const isCartItemComplete = (item: CartItemState) =>
+    Boolean(item.serviceId && item.employeeId && item.date && item.time);
+
+  const updateActiveItem = (updates: Partial<CartItemState>) =>
+    setCartItems((prev) => {
+      const next = [...prev];
+      next[next.length - 1] = { ...next[next.length - 1], ...updates };
+      return next;
+    });
+
+  const handleRemoveCartItem = (index: number) => {
+    if (index === 0) return;
+    setCartItems((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const resetFromDate = () => {
-    setSelectedDate(null);
-    setSelectedTime(null);
-    setClientData(null);
-    setSubmitError(null);
-  };
-
-  const resetFromTime = () => {
-    setSelectedTime(null);
-    setClientData(null);
-    setSubmitError(null);
-  };
-
-  const handleSubmit = async () => {
-    if (!selectedService || !selectedEmployee || !selectedDate || !selectedTime || !clientData) return;
+  const handleCartSubmit = async () => {
+    if (!cartClientData || cartItems.some((item) => !isCartItemComplete(item))) return;
 
     try {
       setIsSubmitting(true);
       setSubmitError(null);
 
-      const normalizedPhone = clientData.phone.replace(/[\s-]/g, '');
+      const normalizedPhone = cartClientData.phone.replace(/[\s-]/g, '');
 
-      await createBooking({
-        name: clientData.name,
-        phone: normalizedPhone,
-        ...(clientData.email ? { email: clientData.email } : {}),
-        serviceId: selectedService.id,
-        employeeId: selectedEmployee.id,
-        date: selectedDate,
-        time: selectedTime,
-      });
+      if (cartItems.length === 1) {
+        const [firstItem] = cartItems;
+        await createBooking({
+          name: cartClientData.name,
+          phone: normalizedPhone,
+          ...(cartClientData.email ? { email: cartClientData.email } : {}),
+          serviceId: firstItem.serviceId!,
+          employeeId: firstItem.employeeId!,
+          date: firstItem.date!,
+          time: firstItem.time!,
+        });
+      } else {
+        await createGroupBooking({
+          name: cartClientData.name,
+          phone: normalizedPhone,
+          ...(cartClientData.email ? { email: cartClientData.email } : {}),
+          items: cartItems.map((item) => ({
+            serviceId: item.serviceId!,
+            employeeId: item.employeeId!,
+            date: item.date!,
+            time: item.time!,
+          })),
+        });
+      }
 
+      setIsSubmitting(false);
       setSubmitSuccess(true);
 
-      // Auto close/reset after 3 seconds
       setTimeout(() => {
         closeModal();
         resetFlow();
       }, 3000);
-
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Wystąpił błąd podczas tworzenia rezerwacji');
-    } finally {
       setIsSubmitting(false);
     }
   };
+
+  let activeItemIndex = -1;
+  for (let i = cartItems.length - 1; i >= 0; i -= 1) {
+    if (!isCartItemComplete(cartItems[i])) {
+      activeItemIndex = i;
+      break;
+    }
+  }
+
+  const activeItem = activeItemIndex >= 0 ? cartItems[activeItemIndex] : null;
+  const canAddAnotherService = !activeItem && cartItems.length < 5;
+  const isCartReadyToSubmit = cartItems.length > 0 && cartItems.every(isCartItemComplete);
+  const totalPrice = cartItems.reduce((sum, item) => sum + (item.service?.price ?? 0), 0);
+  const totalDuration = cartItems.reduce((sum, item) => sum + (item.service?.duration ?? 0), 0);
 
   return (
     <section className="py-24 bg-background-alt relative" id="booking">
@@ -263,84 +302,130 @@ const Booking: React.FC = () => {
               {bookingMode === 'ONLINE' && !submitSuccess && !isSubmitting && !submitError && (
                 <div className="relative">
                   {/* Progress Indicator */}
-                  <div className="flex justify-between mb-8 max-w-xs mx-auto">
-                    {[1, 2, 3, 4, 5, 6].map((s) => (
+                  <div className="flex justify-center gap-4 mb-8">
+                    {['client', 'cart'].map((s) => (
                       <div
                         key={s}
-                        className={`w-2 h-2 rounded-full transition-colors ${step >= s ? 'bg-primary' : 'bg-gray-100'
-                          }`}
+                        className={`w-2 h-2 rounded-full transition-colors ${cartStep === s ? 'bg-primary' : 'bg-gray-100'}`}
                       />
                     ))}
                   </div>
 
-                  {step === 1 && (
-                    <ServiceSelector
-                      onSelect={(s) => {
-                        setSelectedService(s);
-                        resetFromEmployee();
-                        setStep(2);
-                      }}
-                    />
-                  )}
-                  {step === 2 && (
-                    <EmployeeSelector
-                      onSelect={(e) => {
-                        resetFromDate();
-                        setSelectedEmployee(e);
-                        setStep(3);
-                      }}
-                    />
-                  )}
-                  {step === 3 && selectedService && selectedEmployee && (
-                    <BookingCalendar
-                      serviceId={selectedService.id}
-                      employeeId={selectedEmployee.id}
-                      onSelectDate={(d) => {
-                        resetFromTime();
-                        setSelectedDate(d);
-                        setStep(4);
-                      }}
-                    />
-                  )}
-                  {step === 4 && selectedDate && selectedService && selectedEmployee && (
-                    <TimeSlots
-                      date={selectedDate}
-                      serviceId={selectedService.id}
-                      employeeId={selectedEmployee.id}
-                      onSelectTime={(t) => {
-                        setSelectedTime(t);
-                        setStep(5);
-                      }}
-                    />
-                  )}
-                  {step === 5 && (
+                  {cartStep === 'client' && (
                     <ClientForm
                       onSubmit={(data) => {
-                        setClientData(data);
-                        setStep(6);
+                        setCartClientData(data);
+                        setCartStep('cart');
                       }}
-                    />
-                  )}
-                  {step === 6 && selectedService && selectedEmployee && selectedDate && selectedTime && clientData && (
-                    <BookingConfirmation
-                      service={selectedService}
-                      employee={selectedEmployee}
-                      date={selectedDate}
-                      time={selectedTime}
-                      client={clientData}
-                      onConfirm={handleSubmit}
-                      onBack={() => setStep(5)}
                     />
                   )}
 
-                  {step > 1 && step <= 6 && (
-                    <button
-                      onClick={() => setStep(step - 1)}
-                      className="mt-8 text-xs uppercase tracking-widest text-gray-400 hover:text-black flex items-center gap-1 transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-sm">arrow_back</span>
-                      Poprzedni krok
-                    </button>
+                  {cartStep === 'cart' && (
+                    <div className="space-y-6">
+                      <div className="space-y-4">
+                        {cartItems.map((item, i) => (
+                          <CartItemDisplay
+                            key={`${item.serviceId ?? 'service'}-${item.employeeId ?? 'employee'}-${item.date ?? 'date'}-${item.time ?? 'time'}-${i}`}
+                            index={i}
+                            service={item.service}
+                            employee={item.employee}
+                            date={item.date}
+                            time={item.time}
+                            onRemove={() => handleRemoveCartItem(i)}
+                          />
+                        ))}
+                      </div>
+
+                      {activeItem?.activeSubStep === 'service' && (
+                        <ServiceSelector
+                          onSelect={(s) => {
+                            updateActiveItem({
+                              serviceId: s.id,
+                              service: s,
+                              employeeId: null,
+                              employee: null,
+                              date: null,
+                              time: null,
+                              activeSubStep: 'employee',
+                            });
+                          }}
+                        />
+                      )}
+
+                      {activeItem?.activeSubStep === 'employee' && (
+                        <EmployeeSelector
+                          onSelect={(e) => {
+                            updateActiveItem({
+                              employeeId: e.id,
+                              employee: e,
+                              date: null,
+                              time: null,
+                              activeSubStep: 'date',
+                            });
+                          }}
+                        />
+                      )}
+
+                      {activeItem?.activeSubStep === 'date' && activeItem.serviceId && activeItem.employeeId && (
+                        <BookingCalendar
+                          serviceId={activeItem.serviceId}
+                          employeeId={activeItem.employeeId}
+                          onSelectDate={(d) => {
+                            updateActiveItem({
+                              date: d,
+                              time: null,
+                              activeSubStep: 'time',
+                            });
+                          }}
+                        />
+                      )}
+
+                      {activeItem?.activeSubStep === 'time' && activeItem.date && activeItem.serviceId && activeItem.employeeId && (
+                        <TimeSlots
+                          date={activeItem.date}
+                          serviceId={activeItem.serviceId}
+                          employeeId={activeItem.employeeId}
+                          onSelectTime={(t) => {
+                            updateActiveItem({ time: t });
+                          }}
+                        />
+                      )}
+
+                      {canAddAnotherService && (
+                        <button
+                          onClick={() => setCartItems((prev) => [...prev, { ...emptyCartItem }])}
+                          className="w-full border border-gray-200 text-gray-600 py-4 px-8 text-xs uppercase tracking-widest hover:border-black hover:text-black transition-colors"
+                        >
+                          Dodaj kolejną usługę
+                        </button>
+                      )}
+
+                      <div className="border border-gray-200 p-6 space-y-4">
+                        <div className="flex items-center justify-between text-sm font-light text-black">
+                          <span>Łączny czas</span>
+                          <span>{totalDuration} min</span>
+                        </div>
+                        <div className="flex items-center justify-between text-lg text-black">
+                          <span className="font-light">Do zapłaty</span>
+                          <span className="font-semibold">{totalPrice} zł</span>
+                        </div>
+                        <button
+                          onClick={handleCartSubmit}
+                          disabled={!isCartReadyToSubmit || !cartClientData}
+                          className="w-full bg-black text-white py-4 px-8 text-xs uppercase tracking-widest hover:bg-primary transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                        >
+                          Zarezerwuj
+                        </button>
+                      </div>
+
+                      <button
+                        onClick={() => setCartStep('client')}
+                        className="text-xs uppercase tracking-widest text-gray-400 hover:text-black flex items-center gap-1 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-sm">arrow_back</span>
+                        Poprzedni krok
+                      </button>
+                    </div>
                   )}
                 </div>
               )}
