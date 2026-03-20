@@ -7,9 +7,10 @@ interface Props {
     serviceId: string;
     employeeId: string;
     onSelectTime: (time: string) => void;
+    onBack?: () => void;
 }
 
-const TimeSlots: React.FC<Props> = ({ date, serviceId, employeeId, onSelectTime }) => {
+const TimeSlots: React.FC<Props> = ({ date, serviceId, employeeId, onSelectTime, onBack }) => {
     const [slots, setSlots] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -79,6 +80,14 @@ const TimeSlots: React.FC<Props> = ({ date, serviceId, employeeId, onSelectTime 
                     <span className="material-symbols-outlined text-gray-300 text-4xl mb-4">event_busy</span>
                     <p className="text-gray-500 font-light">Przepraszamy, brak wolnych terminów w tym dniu.</p>
                     <p className="text-xs text-gray-400 mt-2">Prosimy wybrać inną datę.</p>
+                    {onBack && (
+                        <button
+                            onClick={onBack}
+                            className="mt-6 text-xs uppercase tracking-widest text-gray-500 hover:text-black border border-gray-200 hover:border-black px-6 py-3 transition-colors"
+                        >
+                            Wybierz inną datę
+                        </button>
+                    )}
                 </div>
             ) : (
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">

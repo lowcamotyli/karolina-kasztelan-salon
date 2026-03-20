@@ -388,6 +388,7 @@ const Booking: React.FC = () => {
                           onSelectTime={(t) => {
                             updateActiveItem({ time: t });
                           }}
+                          onBack={() => updateActiveItem({ date: null, time: null, activeSubStep: 'date' })}
                         />
                       )}
 
