@@ -37,7 +37,10 @@ async function fetchWithAuth<T>(endpoint: string, options: RequestInit = {}): Pr
                 .filter(Boolean)
                 .join(', ')
             : null;
-        throw new Error(validationMessage || errorData.message || `API Error: ${response.status} ${response.statusText}`);
+        const conflictMessage = response.status === 409
+            ? 'Ten termin jest już zajęty. Wróć i wybierz inny termin.'
+            : null;
+        throw new Error(validationMessage || errorData.message || conflictMessage || `API Error: ${response.status}`);
     }
 
     return response.json();

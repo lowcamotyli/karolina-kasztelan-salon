@@ -451,7 +451,7 @@ const Booking: React.FC = () => {
                     onClick={() => setSubmitError(null)}
                     className="bg-black text-white py-3 px-8 text-xs uppercase tracking-widest hover:bg-primary transition-colors"
                   >
-                    Spróbuj ponownie
+                    {submitError?.includes('zajęty') ? 'Zmień termin' : 'Spróbuj ponownie'}
                   </button>
                 </div>
               )}
