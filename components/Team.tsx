@@ -10,8 +10,7 @@ const teamMembers: TeamMember[] = [
   {
     name: 'Ela',
     role: 'Senior Stylist',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAbuh6sIlp_pd2hnH_TsP-bG1uWJ9hu----ymxjQ7q53UGVDrxvVH8W_rY_M-qnF6LHwHXen0O7IDREVZDep6eFakSg8iFcTotHtGgxwflWkiLFezXBu0ydEIozfpTZDHa0RN8zO0eKXj3UZJhruirOFgFAMYLKDhO0tUmqkb0AcTfTE1lnY8HDxmEkxThCe5UByZi_trYiJh1puoG4Lvz3B9fkv2nI5AuLihuVO1MbYI2snHcjis3SSv6ImE_ZXVrNoCTesL2KDijr',
+    image: '/images/Ela.jpeg',
   },
   {
     name: 'Monika',
@@ -21,8 +20,7 @@ const teamMembers: TeamMember[] = [
   {
     name: 'Patrycja',
     role: 'Stylistka paznokci',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCBpXzIAQ9HXI1GZQ1mTY29iLKMKUno-esIKRUYpyIUpUjezZ_j47vCWJLiA0ay7spUc0llSZHjAi60YNO9qylXrFFtfkaxzp2tbpMZQOC2Cpk0tCXcaWE1qObz4Xi6gN7-P-maVujgMAVrXFROdnK0JzhuLBw1dMajd6aesX81MIC0CLPmeaTZY7QWvdQP7_wpJFyk-I4qJ0EBsYx54iNFDWCyjIwQLs5k_AoidVnCIkm7flNz-iT0hzcf_cphUzdOwbosMGoJ5BVW',
+    image: '/images/Patrycja.jpg',
   },
 ];
 

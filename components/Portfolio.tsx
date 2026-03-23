@@ -20,6 +20,7 @@ const items: PortfolioItem[] = [
   { title: 'Stylizacja 15', category: 'Hair', image: '/images/P15.jpeg' },
   { title: 'Stylizacja 16', category: 'Wedding', image: '/images/P16.jpeg' },
   { title: 'Stylizacja 17', category: 'Hair', image: '/images/P17.jpeg' },
+  { title: 'Stylizacja 18', category: 'Hair', image: '/images/praca27.jpeg' },
 ];
 
 const containerVariants = {
