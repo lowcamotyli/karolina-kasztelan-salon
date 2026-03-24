@@ -85,26 +85,6 @@ const ServiceSelector: React.FC<Props> = ({ onSelect }) => {
         }, {});
 
     useEffect(() => {
-        const allSectionKeys = Object.entries(groupedServices).flatMap(([category, subcategories]) =>
-            Object.keys(subcategories).map((subcategory) => getSectionKey(category, subcategory))
-        );
-
-        setExpandedSections((prev) => {
-            const next = new Set(prev);
-            let changed = false;
-
-            allSectionKeys.forEach((sectionKey) => {
-                if (!next.has(sectionKey)) {
-                    next.add(sectionKey);
-                    changed = true;
-                }
-            });
-
-            return changed ? next : prev;
-        });
-    }, [groupedServices]);
-
-    useEffect(() => {
         if (!normalizedSearchQuery) return;
 
         setExpandedSections(new Set(
