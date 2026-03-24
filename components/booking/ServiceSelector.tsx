@@ -157,9 +157,9 @@ const ServiceSelector: React.FC<Props> = ({ onSelect }) => {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-8"
         >
-            <div className="text-center mb-8">
-                <h3 className="font-display text-2xl text-black mb-2">Wybierz usługę</h3>
-                <p className="text-text-light text-sm font-light">Znajdź idealny zabieg dla siebie</p>
+            <div className="text-center mb-4">
+                <h3 className="font-display text-xl text-black mb-1">Wybierz usługę</h3>
+                <p className="text-text-light text-xs font-light">Znajdź idealny zabieg dla siebie</p>
             </div>
 
             <div className="relative">
@@ -175,11 +175,11 @@ const ServiceSelector: React.FC<Props> = ({ onSelect }) => {
                 />
             </div>
 
-            <div className="space-y-12">
+            <div className="space-y-6">
                 {Object.entries(visibleGroupedServices).map(([category, subcategories]) => (
-                    <div key={category} className="space-y-8">
-                        <div className="border-l-4 border-primary pl-4">
-                            <h4 className="font-display text-3xl text-black">
+                    <div key={category} className="space-y-3">
+                        <div className="border-l-4 border-primary pl-3">
+                            <h4 className="font-display text-xl sm:text-3xl text-black">
                                 {category}
                             </h4>
                         </div>
@@ -189,7 +189,7 @@ const ServiceSelector: React.FC<Props> = ({ onSelect }) => {
                             const isExpanded = expandedSections.has(sectionKey);
 
                             return (
-                                <div key={subcategory} className="space-y-4">
+                                <div key={subcategory} className="space-y-2">
                                     <button
                                         type="button"
                                         onClick={() => toggleSection(sectionKey)}
@@ -217,7 +217,7 @@ const ServiceSelector: React.FC<Props> = ({ onSelect }) => {
                                                 transition={{ duration: 0.2, ease: 'easeInOut' }}
                                                 className="overflow-hidden"
                                             >
-                                                <div className="grid gap-4 sm:grid-cols-2">
+                                                <div className="grid grid-cols-2 gap-2 sm:gap-3">
                                                     {items.map((service) => (
                                                         <motion.button
                                                             key={service.id}
@@ -229,19 +229,17 @@ const ServiceSelector: React.FC<Props> = ({ onSelect }) => {
                                                                 duration: service.duration,
                                                                 price: service.price
                                                             })}
-                                                            className="bg-white p-6 border border-gray-100 rounded-xl shadow-sm hover:border-primary/20 transition-all text-left group"
+                                                            className="bg-white p-3 sm:p-5 border border-gray-100 rounded-xl shadow-sm hover:border-primary/20 transition-all text-left group"
                                                         >
-                                                            <div className="space-y-4">
-                                                                <p className="font-display text-lg text-black group-hover:text-primary transition-colors line-clamp-1">
+                                                            <div className="space-y-2 sm:space-y-3">
+                                                                <p className="font-display text-xs sm:text-base text-black group-hover:text-primary transition-colors line-clamp-2 leading-tight">
                                                                     {service.name}
                                                                 </p>
 
-                                                                <div className="flex items-center justify-between">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <span className="text-primary font-bold text-xl">$ {formatPrice(service.price)} zł</span>
-                                                                    </div>
-                                                                    <div className="flex items-center gap-1.5 text-gray-400">
-                                                                        <span className="material-symbols-outlined text-sm">schedule</span>
+                                                                <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between">
+                                                                    <span className="text-primary font-bold text-sm sm:text-lg">{formatPrice(service.price)} zł</span>
+                                                                    <div className="flex items-center gap-1 text-gray-400">
+                                                                        <span className="material-symbols-outlined text-xs">schedule</span>
                                                                         <span className="text-xs font-light">{service.duration} min</span>
                                                                     </div>
                                                                 </div>
