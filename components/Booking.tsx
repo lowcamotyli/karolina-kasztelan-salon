@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { siteConfig } from '../constants/siteConfig';
 import ServiceSelector from './booking/ServiceSelector';
@@ -7,7 +7,8 @@ import TimeSlots from './booking/TimeSlots';
 import ClientForm from './booking/ClientForm';
 import BookingConfirmation from './booking/BookingConfirmation';
 import EmployeeSelector from './booking/EmployeeSelector';
-import { createBooking, createGroupBooking } from '../lib/api';
+import PaymentChoice from './booking/PaymentChoice';
+import { createBooking, createGroupBooking, initiatePayment, getPaymentStatus } from '../lib/api';
 import { SimpliEmployee } from '../lib/types';
 import CartItemDisplay from './booking/CartItem';
 
@@ -47,6 +48,31 @@ const Booking: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [pendingBookingId, setPendingBookingId] = useState<string | null>(null);
+  const [pendingTotalPrice, setPendingTotalPrice] = useState<number>(0);
+  const [isInitiatingPayment, setIsInitiatingPayment] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<'paid' | 'failed' | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const session = params.get('session');
+
+    if (!session) return;
+
+    window.history.replaceState({}, '', window.location.pathname);
+    setIsModalOpen(true);
+    setIsSubmitting(true);
+
+    getPaymentStatus(session)
+      .then(({ status }) => {
+        setIsSubmitting(false);
+        setPaymentStatus(status === 'paid' ? 'paid' : 'failed');
+      })
+      .catch(() => {
+        setIsSubmitting(false);
+        setPaymentStatus('failed');
+      });
+  }, []);
 
   const openModal = () => {
     setIsModalOpen(true);
@@ -71,6 +97,10 @@ const Booking: React.FC = () => {
     setBookingMode(null);
     setSubmitSuccess(false);
     setSubmitError(null);
+    setPendingBookingId(null);
+    setPendingTotalPrice(0);
+    setIsInitiatingPayment(false);
+    setPaymentStatus(null);
   };
 
   const isCartItemComplete = (item: CartItemState) =>
@@ -96,10 +126,11 @@ const Booking: React.FC = () => {
       setSubmitError(null);
 
       const normalizedPhone = cartClientData.phone.replace(/[\s-]/g, '');
+      let bookingId: string;
 
       if (cartItems.length === 1) {
         const [firstItem] = cartItems;
-        await createBooking({
+        const result = await createBooking({
           name: cartClientData.name,
           phone: normalizedPhone,
           ...(cartClientData.email ? { email: cartClientData.email } : {}),
@@ -108,8 +139,9 @@ const Booking: React.FC = () => {
           date: firstItem.date!,
           time: firstItem.time!,
         });
+        bookingId = result.booking.id;
       } else {
-        await createGroupBooking({
+        const result = await createGroupBooking({
           name: cartClientData.name,
           phone: normalizedPhone,
           ...(cartClientData.email ? { email: cartClientData.email } : {}),
@@ -120,19 +152,36 @@ const Booking: React.FC = () => {
             time: item.time!,
           })),
         });
+        bookingId = result.bookings[0].id;
       }
 
       setIsSubmitting(false);
-      setSubmitSuccess(true);
-
-      setTimeout(() => {
-        closeModal();
-        resetFlow();
-      }, 3000);
+      setPendingBookingId(bookingId);
+      setPendingTotalPrice(totalPrice);
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Wystąpił błąd podczas tworzenia rezerwacji');
       setIsSubmitting(false);
     }
+  };
+
+  const handlePayNow = async () => {
+    if (!pendingBookingId) return;
+
+    try {
+      setIsInitiatingPayment(true);
+      const returnUrl = window.location.href;
+      const { paymentUrl } = await initiatePayment(pendingBookingId, returnUrl);
+      window.location.href = paymentUrl;
+    } catch {
+      setIsInitiatingPayment(false);
+      setSubmitError('Nie udało się zainicjować płatności. Spróbuj ponownie.');
+      setPendingBookingId(null);
+    }
+  };
+
+  const handlePayLater = () => {
+    setPendingBookingId(null);
+    setSubmitSuccess(true);
   };
 
   let activeItemIndex = -1;
@@ -236,7 +285,7 @@ const Booking: React.FC = () => {
               </button>
 
               {/* Step Choice / Basic Call Modal */}
-              {!bookingMode && !submitSuccess && (
+              {!bookingMode && !submitSuccess && !paymentStatus && !pendingBookingId && (
                 <div className="text-center">
                   <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 text-primary">
                     <span className="material-symbols-outlined text-3xl">calendar_month</span>
@@ -299,7 +348,7 @@ const Booking: React.FC = () => {
               )}
 
               {/* Online Step Flow */}
-              {bookingMode === 'ONLINE' && !submitSuccess && !isSubmitting && !submitError && (
+              {bookingMode === 'ONLINE' && !submitSuccess && !isSubmitting && !submitError && !pendingBookingId && !paymentStatus && (
                 <div className="relative">
                   {/* Progress Indicator */}
                   <div className="flex justify-center gap-4 mb-8">
@@ -440,6 +489,36 @@ const Booking: React.FC = () => {
                 <div className="py-20 text-center">
                   <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                   <p className="text-gray-500 font-light">Finalizowanie rezerwacji...</p>
+                </div>
+              )}
+
+              {!isSubmitting && !submitError && !submitSuccess && pendingBookingId && (
+                <PaymentChoice
+                  totalPrice={pendingTotalPrice}
+                  onPayNow={handlePayNow}
+                  onPayLater={handlePayLater}
+                  isLoading={isInitiatingPayment}
+                />
+              )}
+
+              {paymentStatus === 'paid' && (
+                <div className="py-10 text-center">
+                  <div className="w-20 h-20 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <span className="material-symbols-outlined text-5xl">check_circle</span>
+                  </div>
+                  <h3 className="font-display text-2xl text-black mb-4">Płatność potwierdzona!</h3>
+                  <p className="text-text-light font-light mb-8 max-w-sm mx-auto">Rezerwacja opłacona. Do zobaczenia w salonie!</p>
+                  <button onClick={() => { setPaymentStatus(null); closeModal(); resetFlow(); }} className="bg-primary text-white py-4 px-12 text-xs uppercase tracking-widest hover:bg-black transition-colors shadow-lg">Zamknij</button>
+                </div>
+              )}
+              {paymentStatus === 'failed' && (
+                <div className="py-10 text-center">
+                  <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <span className="material-symbols-outlined text-3xl">error</span>
+                  </div>
+                  <h3 className="font-display text-xl text-black mb-4">Płatność nieudana</h3>
+                  <p className="text-text-light font-light mb-8">Rezerwacja istnieje, ale płatność nie została przetworzona. Możesz spróbować ponownie przy wizycie.</p>
+                  <button onClick={() => { setPaymentStatus(null); closeModal(); resetFlow(); }} className="bg-black text-white py-3 px-8 text-xs uppercase tracking-widest hover:bg-primary transition-colors">Zamknij</button>
                 </div>
               )}
 

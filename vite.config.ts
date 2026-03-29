@@ -9,7 +9,7 @@ export default defineConfig({
     host: '0.0.0.0',
     proxy: {
       '/api/simpli': {
-        target: 'https://simplisaloncloud.vercel.app',
+        target: process.env.VITE_SIMPLI_API_URL || 'https://simplisaloncloud.vercel.app',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/simpli/, ''),
       },

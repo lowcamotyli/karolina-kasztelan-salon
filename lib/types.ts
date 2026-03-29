@@ -67,3 +67,13 @@ export interface GroupBookingResponse {
         booking_time: string
     }>
 }
+
+export interface PaymentInitResponse {
+    paymentUrl: string
+    sessionId: string
+}
+
+export interface PaymentStatusResponse {
+    status: 'pending' | 'paid' | 'failed'
+    bookingId: string
+}

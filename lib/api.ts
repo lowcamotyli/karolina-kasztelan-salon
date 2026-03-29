@@ -6,6 +6,8 @@ import {
     GroupBookingRequest,
     GroupBookingResponse,
     BookingResponse,
+    PaymentInitResponse,
+    PaymentStatusResponse,
 } from './types';
 
 // Use relative proxy path to avoid CORS — Vercel rewrites /api/simpli/* → simplisaloncloud.vercel.app/api/*
@@ -86,4 +88,15 @@ export async function createGroupBooking(data: GroupBookingRequest): Promise<Gro
         method: 'POST',
         body: JSON.stringify(data),
     });
+}
+
+export async function initiatePayment(bookingId: string, returnUrl: string): Promise<PaymentInitResponse> {
+    return fetchWithAuth<PaymentInitResponse>('/api/public/payments/initiate', {
+        method: 'POST',
+        body: JSON.stringify({ bookingId, returnUrl }),
+    });
+}
+
+export async function getPaymentStatus(sessionId: string): Promise<PaymentStatusResponse> {
+    return fetchWithAuth<PaymentStatusResponse>(`/api/public/payments/status?sessionId=${encodeURIComponent(sessionId)}`);
 }
