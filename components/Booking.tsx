@@ -51,7 +51,7 @@ const Booking: React.FC = () => {
   const [pendingBookingId, setPendingBookingId] = useState<string | null>(null);
   const [pendingTotalPrice, setPendingTotalPrice] = useState<number>(0);
   const [isInitiatingPayment, setIsInitiatingPayment] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState<'paid' | 'failed' | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid' | 'failed' | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -59,19 +59,40 @@ const Booking: React.FC = () => {
 
     if (!session) return;
 
+    let cancelled = false;
+
     window.history.replaceState({}, '', window.location.pathname);
     setIsModalOpen(true);
     setIsSubmitting(true);
 
-    getPaymentStatus(session)
-      .then(({ status }) => {
-        setIsSubmitting(false);
-        setPaymentStatus(status === 'paid' ? 'paid' : 'failed');
-      })
-      .catch(() => {
+    const checkPaymentStatus = async () => {
+      try {
+        for (let attempt = 0; attempt < 6; attempt += 1) {
+          const { status } = await getPaymentStatus(session);
+
+          if (cancelled) return;
+
+          if (status === 'pending' && attempt < 5) {
+            await new Promise((resolve) => window.setTimeout(resolve, 1500));
+            continue;
+          }
+
+          setIsSubmitting(false);
+          setPaymentStatus(status);
+          return;
+        }
+      } catch {
+        if (cancelled) return;
         setIsSubmitting(false);
         setPaymentStatus('failed');
-      });
+      }
+    };
+
+    void checkPaymentStatus();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const openModal = () => {
@@ -509,6 +530,16 @@ const Booking: React.FC = () => {
                   <h3 className="font-display text-2xl text-black mb-4">Płatność potwierdzona!</h3>
                   <p className="text-text-light font-light mb-8 max-w-sm mx-auto">Rezerwacja opłacona. Do zobaczenia w salonie!</p>
                   <button onClick={() => { setPaymentStatus(null); closeModal(); resetFlow(); }} className="bg-primary text-white py-4 px-12 text-xs uppercase tracking-widest hover:bg-black transition-colors shadow-lg">Zamknij</button>
+                </div>
+              )}
+              {paymentStatus === 'pending' && (
+                <div className="py-10 text-center">
+                  <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <span className="material-symbols-outlined text-3xl">schedule</span>
+                  </div>
+                  <h3 className="font-display text-xl text-black mb-4">Platnosc oczekuje na potwierdzenie</h3>
+                  <p className="text-text-light font-light mb-8">Rezerwacja istnieje i czekamy jeszcze na ostateczne potwierdzenie platnosci z Przelewy24. Jesli oplata zostala wykonana, status powinien zaktualizowac sie za chwile w systemie.</p>
+                  <button onClick={() => { setPaymentStatus(null); closeModal(); resetFlow(); }} className="bg-black text-white py-3 px-8 text-xs uppercase tracking-widest hover:bg-primary transition-colors">Zamknij</button>
                 </div>
               )}
               {paymentStatus === 'failed' && (
