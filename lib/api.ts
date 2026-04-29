@@ -1,5 +1,5 @@
 import {
-    SimpliService,
+    SimpliService as BaseSimpliService,
     SimpliEmployee,
     AvailabilityResponse,
     BookingRequest,
@@ -9,6 +9,10 @@ import {
     PaymentInitResponse,
     PaymentStatusResponse,
 } from './types';
+
+export type SimpliService = BaseSimpliService & {
+    description?: string;
+};
 
 // Use relative proxy path to avoid CORS — Vercel rewrites /api/simpli/* → simplisaloncloud.vercel.app/api/*
 const API_URL = '/api/simpli';

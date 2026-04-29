@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { fetchServices } from '../../lib/api';
-import { SimpliService } from '../../lib/types';
+import { fetchServices, type SimpliService } from '../../lib/api';
 
 interface Props {
     onSelect: (service: { id: string; name: string; duration: number; price: number }) => void;
@@ -21,6 +20,7 @@ const ServiceSelector: React.FC<Props> = ({ onSelect }) => {
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+    const [expandedServiceDescriptions, setExpandedServiceDescriptions] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         const loadServices = async () => {
@@ -102,6 +102,20 @@ const ServiceSelector: React.FC<Props> = ({ onSelect }) => {
                 next.delete(sectionKey);
             } else {
                 next.add(sectionKey);
+            }
+
+            return next;
+        });
+    };
+
+    const toggleServiceDescription = (serviceId: string) => {
+        setExpandedServiceDescriptions((prev) => {
+            const next = new Set(prev);
+
+            if (next.has(serviceId)) {
+                next.delete(serviceId);
+            } else {
+                next.add(serviceId);
             }
 
             return next;
@@ -199,7 +213,7 @@ const ServiceSelector: React.FC<Props> = ({ onSelect }) => {
                                             >
                                                 <div className="grid grid-cols-2 gap-2 sm:gap-3">
                                                     {items.map((service) => (
-                                                        <motion.button
+                                                        <motion.div
                                                             key={service.id}
                                                             whileHover={{ y: -2, boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05)' }}
                                                             whileTap={{ scale: 0.98 }}
@@ -209,6 +223,19 @@ const ServiceSelector: React.FC<Props> = ({ onSelect }) => {
                                                                 duration: service.duration,
                                                                 price: service.price
                                                             })}
+                                                            onKeyDown={(event) => {
+                                                                if (event.key === 'Enter' || event.key === ' ') {
+                                                                    event.preventDefault();
+                                                                    onSelect({
+                                                                        id: service.id,
+                                                                        name: service.name,
+                                                                        duration: service.duration,
+                                                                        price: service.price
+                                                                    });
+                                                                }
+                                                            }}
+                                                            role="button"
+                                                            tabIndex={0}
                                                             className="bg-white p-3 sm:p-5 border border-gray-100 rounded-xl shadow-sm hover:border-primary/20 transition-all text-left group"
                                                         >
                                                             <div className="space-y-2 sm:space-y-3">
@@ -221,10 +248,39 @@ const ServiceSelector: React.FC<Props> = ({ onSelect }) => {
                                                                     <div className="flex items-center gap-1 text-gray-400">
                                                                         <span className="material-symbols-outlined text-xs">schedule</span>
                                                                         <span className="text-xs font-light">{service.duration} min</span>
+                                                                        {service.description ? (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={(event) => {
+                                                                                    event.stopPropagation();
+                                                                                    toggleServiceDescription(service.id);
+                                                                                }}
+                                                                                className="inline-flex items-center justify-center rounded-full p-0.5 text-gray-500 hover:text-primary transition-colors"
+                                                                                aria-label="Pokaż opis usługi"
+                                                                            >
+                                                                                <span className="material-symbols-outlined text-sm">info</span>
+                                                                            </button>
+                                                                        ) : null}
                                                                     </div>
                                                                 </div>
+
+                                                                {service.description ? (
+                                                                    <AnimatePresence initial={false}>
+                                                                        {expandedServiceDescriptions.has(service.id) && (
+                                                                            <motion.div
+                                                                                initial={{ height: 0, opacity: 0 }}
+                                                                                animate={{ height: 'auto', opacity: 1 }}
+                                                                                exit={{ height: 0, opacity: 0 }}
+                                                                                transition={{ duration: 0.2, ease: 'easeInOut' }}
+                                                                                className="overflow-hidden"
+                                                                            >
+                                                                                <p className="text-xs text-gray-600 mt-2 text-left">{service.description}</p>
+                                                                            </motion.div>
+                                                                        )}
+                                                                    </AnimatePresence>
+                                                                ) : null}
                                                             </div>
-                                                        </motion.button>
+                                                        </motion.div>
                                                     ))}
                                                 </div>
                                             </motion.div>
